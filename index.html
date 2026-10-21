@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-mode="view">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -128,6 +128,41 @@ input[type=file]{display:none}
 .wf-row select{min-width:135px}
 @media(max-width:680px){.sidebar{width:125px}.sb-item{font-size:11px;padding:9px 5px}.sb-sec{padding-left:6px}.sb-week{padding-left:8px}.main{padding:8px}.mgrid{grid-template-columns:repeat(2,1fr)}.wf-row{grid-template-columns:1fr 1fr}.hdr{gap:5px}}
 
+
+/* Snapshot publishing + view-only mode */
+.snap-overlay{position:fixed;inset:0;z-index:1000;background:rgba(17,24,39,.45);display:flex;align-items:center;justify-content:center;padding:18px}
+.snap-overlay.lock{background:#eff3fa}
+.snap-card{background:#fff;border:1px solid #dce5f4;border-radius:12px;padding:24px;max-width:430px;width:100%;box-shadow:0 14px 50px #1e3a8a1c}
+.snap-card h2{color:#243d86;font-size:19px;margin-bottom:6px}
+.snap-card p{font-size:13px;color:#4b5563;line-height:1.5;margin-bottom:12px}
+.snap-card label{display:block;font-size:12px;font-weight:600;color:#374151;margin-top:8px}
+.snap-card input[type=password]{width:100%;margin:4px 0 6px;padding:10px;border:1px solid #cbd5e1;border-radius:6px;font-size:14px}
+.snap-card input:focus-visible,.snap-card button:focus-visible{outline:2px solid #2E4DA3;outline-offset:2px}
+.snap-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap}
+.snap-actions button{padding:9px 14px;border-radius:6px;font-weight:600;cursor:pointer;border:1px solid #2E4DA3;background:#2E4DA3;color:#fff;font-size:13px}
+.snap-actions button.ghost{background:#fff;color:#2E4DA3}
+.snap-err{color:#b91c1c;font-size:12px;min-height:16px}
+.snap-file{font-size:12px;color:#64748b;margin-top:10px}
+/* In view-only mode every editing control is hidden; the matching functions are also disabled in script. */
+html[data-mode=view] .edit-only,
+html[data-mode=view] [data-flow-edit],
+html[data-mode=view] [onclick*="openEditModal"],html[data-mode=view] [onclick*="openAddModal"],
+html[data-mode=view] [onclick*="deleteObs"],html[data-mode=view] [onclick*="deleteSubmission"],
+html[data-mode=view] [onclick*="openEditSubmissionModal"],html[data-mode=view] [onclick*="openAddSubmissionModal"],
+html[data-mode=view] [onclick*="reviewResolve"],html[data-mode=view] [onclick*="recheckReview"],html[data-mode=view] [onclick*="reviewBulk"],html[data-mode=view] [onclick*="reviewSelectAll"],html[data-mode=view] [onclick*="applyBulkWorkflow"],
+html[data-mode=view] [onclick*="confirmTypeAndImport"],html[data-mode=view] [onclick*="splitSubmissionByEmail"],
+html[data-mode=view] [onclick*="unmarkSubmissionReconciled"],html[data-mode=view] [onclick*="unmarkPayoutPaidById"],
+html[data-mode=view] [onclick*="markSelectedPaid"],html[data-mode=view] [onclick*="keepThisDeleteRest"],
+html[data-mode=view] [onclick*="openRenameObserverModal"],html[data-mode=view] [onclick*="doUndo"],
+html[data-mode=view] [onclick*="addSelectedToSubmissionReport"],html[data-mode=view] [onclick*="saveEmailSummaryBatch"],
+html[data-mode=view] [onclick*="csvImportFile"],html[data-mode=view] [onclick*="csvSubmitted"],
+html[data-mode=view] [onclick*="importCSV"],html[data-mode=view] [onclick*="importSubmittedCSV"]{display:none!important}
+html[data-mode=view] [onchange*="toggleInvDate"],html[data-mode=view] [onchange*="toggleVerified"],
+html[data-mode=view] [onchange*="toggleProcessing"],html[data-mode=view] [onchange*="workflowSetStage"],
+html[data-mode=view] [onchange*="markSubmissionReconciled"]{pointer-events:none;opacity:.55}
+html[data-mode=view] .cloud-bar{background:#fef3c7;color:#78350f;border-bottom-color:#fde68a}
+html[data-mode=view] .cloud-bar button{border-color:#f5d48a;color:#78350f}
+.btn:disabled,.btn[disabled]{opacity:.45;cursor:not-allowed}
 </style>
 </head>
 <body>
@@ -144,26 +179,27 @@ input[type=file]{display:none}
     <button class="hdr-btn" onclick="document.getElementById('csvSubmittedInternalFile').click()">📤 Upload submitted CSV (Internal)</button>
     <input type="file" id="csvSubmittedInternalFile" accept=".csv" onchange="importSubmittedCSV(event,'Internal')">
     <button class="hdr-btn" onclick="exportCSV()">⬇ Export CSV</button>
-    <button class="hdr-btn save" onclick="manualSave()">💾 Save</button>
+    <button class="hdr-btn save edit-only" onclick="manualSave()">💾 Save</button>
     <div class="hdr-more">
       <button class="hdr-btn" onclick="toggleMoreMenu(event)">⋯ More</button>
       <div class="hdr-more-menu" id="moreMenu">
         <button onclick="closeMoreMenu();window.open('tutorial.html','_blank','noopener')">📘 Quick Start Tutorial</button>
-        <button onclick="closeMoreMenu();backupData()">⬇ Backup</button>
-        <button onclick="closeMoreMenu();document.getElementById('restoreFile').click()">⬆ Restore</button>
+        <button class="edit-only" onclick="closeMoreMenu();backupData()">⬇ Backup</button>
+        <button class="edit-only" onclick="closeMoreMenu();document.getElementById('restoreFile').click()">⬆ Restore</button>
         <input type="file" id="restoreFile" accept=".json" onchange="restoreData(event)">
         <button onclick="closeMoreMenu();window.print()">🖨 Print Report</button>
-        <button onclick="closeMoreMenu();repairInvoiceDates()">🔧 Fix missing dates & paid amounts</button>
+        <button class="edit-only" onclick="closeMoreMenu();openPublishSnapshot()">🔒 Publish view-only snapshot</button>
+        <button class="edit-only" onclick="closeMoreMenu();repairInvoiceDates()">🔧 Fix missing dates & paid amounts</button>
         <button onclick="closeMoreMenu();nav('duplicates')">🔍 Find duplicate observations</button>
-        <button onclick="closeMoreMenu();openMergeAccountsModal()">🔗 Merge accounts</button>
+        <button class="edit-only" onclick="closeMoreMenu();openMergeAccountsModal()">🔗 Merge accounts</button>
         <hr>
-        <button class="danger" onclick="closeMoreMenu();showClearConfirm()">✕ Clear Window</button>
+        <button class="danger edit-only" onclick="closeMoreMenu();showClearConfirm()">✕ Clear Window</button>
       </div>
     </div>
   </div>
 
   
-<div class="cloud-bar" id="localBar"><span><span id="cloudDot" class="cloud-dot"></span> <span id="cloudStatus" class="cloud-pill">Saved in this browser</span> <span id="backupNote" style="font-weight:400;margin-left:6px"></span></span><div><button onclick="backupData()">⬇ Backup now</button> <button onclick="document.getElementById('restoreFile').click()">⬆ Restore</button></div></div>
+<div class="cloud-bar" id="localBar"><span><span id="cloudDot" class="cloud-dot"></span> <span id="cloudStatus" class="cloud-pill">Saved in this browser</span> <span id="backupNote" style="font-weight:400;margin-left:6px"></span></span><div id="localBarBtns"><button onclick="backupData()">⬇ Backup now</button> <button onclick="document.getElementById('restoreFile').click()">⬆ Restore</button> <button onclick="openPublishSnapshot()">🔒 Publish snapshot</button></div></div>
 
   <div class="body">
     <div class="sidebar" id="sidebar"></div>
@@ -334,8 +370,16 @@ let undoStack=[];
 let payoutSelectedIds=new Set(); // persists Payment Summary checkbox selections across tab navigation
 let toastTimer=null;
 
-function lsGet(k){try{return JSON.parse(localStorage.getItem(k));}catch(e){return null;}}
-function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){} }
+const FF_VIEW_ONLY=document.documentElement.dataset.mode==='view';
+let viewSnapshot=null; // view-only mode: decrypted published snapshot (kept in memory only)
+function lsGet(k){
+  if(FF_VIEW_ONLY){
+    if(!viewSnapshot)return null;
+    const m={fot2_data:viewSnapshot.data,fot2_submissions:viewSnapshot.submissions,fot2_season:viewSnapshot.currentSeason,ff_upload_review_v8:viewSnapshot.uploadReview,ff_audit_v8:viewSnapshot.changeHistory};
+    return k in m?JSON.parse(JSON.stringify(m[k]??null)):null;
+  }
+  try{return JSON.parse(localStorage.getItem(k));}catch(e){return null;}}
+function lsSet(k,v){if(FF_VIEW_ONLY)return;try{localStorage.setItem(k,JSON.stringify(v));}catch(e){} }
 
 function init(){
   data=lsGet('fot2_data')||{};
@@ -681,8 +725,20 @@ function renderDashboard(){
 }
 
 // ── ALL OBSERVATIONS ──────────────────────────────────────
+// Alphabetical by observer FIRST name, then LAST name (e.g. "Amy Lee" before "Amy Smith" before "Ben Adams").
+function observerNameParts(name){
+  const parts=String(name||'').trim().split(/\s+/).filter(Boolean);
+  if(!parts.length)return ['\uffff','\uffff'];            // blank names sort last
+  return [parts[0],parts.length>1?parts[parts.length-1]:''];
+}
+function observerSort(a,b){
+  const [af,al]=observerNameParts(a.observer),[bf,bl]=observerNameParts(b.observer);
+  const opt={sensitivity:'base'};
+  return af.localeCompare(bf,undefined,opt)||al.localeCompare(bl,undefined,opt)
+    ||String(a.observer||'').localeCompare(String(b.observer||''),undefined,opt);
+}
 function renderAll(filterWeek){
-  let obs=[...getSeason()].sort((a,b)=>(a.observer||'').localeCompare(b.observer||'')||(a.date||'').localeCompare(b.date||''));
+  let obs=[...getSeason()].sort((a,b)=>observerSort(a,b)||(a.date||'').localeCompare(b.date||''));
   const title=filterWeek?('Week of '+getWeekLabel(filterWeek+'T12:00:00')):'All observations';
 
   let html=`
@@ -706,15 +762,7 @@ function renderAll(filterWeek){
       </select>
       <input id="fSearch" placeholder="Search observer or program..." oninput="applyFilter()" style="width:220px">
     </div>
-    <div class="sec"><div style="overflow-x:auto"><table id="obsTable">
-      <thead><tr>
-        <th>Observer</th><th>Type</th><th>Date</th><th>Week</th>
-        <th>Program</th><th>Classroom</th><th>Class tool</th><th>LinkB5 #</th>
-        <th>Invoice created</th><th>Invoice submitted</th><th>Invoice reconciled</th>
-        <th>Status</th><th>Paid</th><th>Notes</th><th></th>
-      </tr></thead>
-      <tbody id="obsTableBody"></tbody>
-    </table></div></div>`;
+    <div id="obsGroups"></div>`;
 
   document.getElementById('pageContent').innerHTML=html;
   window._obsData=obs;
@@ -732,10 +780,21 @@ function applyFilter(){
   if(status)obs=obs.filter(o=>(o.inv_status||'none')===status);
   if(search)obs=obs.filter(o=>(o.observer||'').toLowerCase().includes(search)||(o.program||'').toLowerCase().includes(search));
 
-  const tbody=document.getElementById('obsTableBody');
-  if(!tbody)return;
-  if(!obs.length){tbody.innerHTML=`<tr><td colspan="15" style="text-align:center;color:#9ca3af;padding:20px">No observations match the current filter</td></tr>`;return;}
-  tbody.innerHTML=obs.map(o=>`<tr class="${o.inv_status==='reconciled'?'row-reconciled':o.inv_status==='submitted'?'row-submitted':''}">
+  const wrap=document.getElementById('obsGroups');
+  if(!wrap)return;
+  const head=`<thead><tr><th>Observer</th><th>Type</th><th>Date</th><th>Week</th><th>Program</th><th>Classroom</th><th>Class tool</th><th>LinkB5 #</th><th>Invoice created</th><th>Invoice submitted</th><th>Invoice reconciled</th><th>Status</th><th>Paid</th><th>Notes</th><th></th></tr></thead>`;
+  const groups=[['Contractor','observations',obs.filter(o=>o.type==='Contractor')],
+                ['Internal','observations',obs.filter(o=>o.type==='Internal')],
+                ['Other','no type set',obs.filter(o=>o.type!=='Contractor'&&o.type!=='Internal')]];
+  const shown=groups.filter(([key,,list])=>type?key===type:(key!=='Other'||list.length));
+  wrap.innerHTML=shown.map(([key,label,list])=>{
+    const observers=new Set(list.map(o=>o.observer).filter(Boolean)).size;
+    const body=list.length?obsRowsHtml(list):`<tr><td colspan="15" style="text-align:center;color:#9ca3af;padding:20px">No ${key.toLowerCase()} observations match the current filter</td></tr>`;
+    return `<div class="sec" style="margin-bottom:16px"><div class="sec-hdr" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><h3><span class="badge badge-${key.toLowerCase()}">${key}</span> ${label}</h3><span style="font-size:12px;color:#6b7280">${list.length} observation${list.length===1?'':'s'} · ${observers} observer${observers===1?'':'s'}</span></div><div style="overflow-x:auto"><table>${head}<tbody>${body}</tbody></table></div></div>`;
+  }).join('');
+}
+function obsRowsHtml(obs){
+  return obs.map(o=>`<tr class="${o.inv_status==='reconciled'?'row-reconciled':o.inv_status==='submitted'?'row-submitted':''}">
     <td style="font-weight:600;white-space:nowrap">${o.observer||'—'}</td>
     <td><span class="badge badge-${(o.type||'').toLowerCase()}">${o.type||'—'}</span></td>
     <td style="white-space:nowrap">${fmtDate(o.date)}</td>
@@ -2091,7 +2150,8 @@ function backupData(){
     data,
     submissions,
     uploadReview:(typeof uploadReviewQueue!=='undefined')?uploadReviewQueue:{},
-    changeHistory:(typeof auditEvents!=='undefined')?auditEvents:[]
+    changeHistory:(typeof auditEvents!=='undefined')?auditEvents:[],
+    reviewedRows:lsGet('ff_review_resolved_v1')||{}
   };
   dl(JSON.stringify(payload,null,2),'observation-tracker-backup-'+new Date().toISOString().slice(0,10)+'.json','application/json');
   lsSet('fot2_last_backup',new Date().toISOString());updateLocalBar();
@@ -2134,6 +2194,7 @@ function restoreData(event){
     lsSet('fot2_season',currentSeason);
     if(parsed.uploadReview&&typeof parsed.uploadReview==='object'){uploadReviewQueue=parsed.uploadReview;lsSet(reviewStorageKey,uploadReviewQueue);}
     if(Array.isArray(parsed.changeHistory)){auditEvents=parsed.changeHistory;lsSet(auditStorageKey,auditEvents);}
+    if(parsed.reviewedRows&&typeof parsed.reviewedRows==='object')lsSet('ff_review_resolved_v1',parsed.reviewedRows);
     buildSeasonSelect();
     applySeasonLabel();
     currentView='dashboard';
@@ -2618,8 +2679,13 @@ processRawWeeklyCSV=function(lines,obsType){
   const scheduled=parseAnyDate(c[1]||'');const completed=parseAnyDate(c[6]||'');
   if(!scheduled&&!completed){missing++;continue;}const day=scheduled||completed;
   const program=(c[2]||'').trim(),classroom=(c[3]||'').trim(),linkb5=(c[5]||'').trim();
-  const possible=all.filter(o=>sameObserver(o.observer,name)&&scheduleDate(o)===day&&normName(o.program)===normName(program)&&normName(o.classroom)===normName(classroom));
-  const existing=possible.length===1?possible[0]:null;
+  // Already in the tracker? Same observer (or the originally scheduled observer, if a merge renamed it), same date,
+  // same site & classroom ignoring punctuation/spacing. Any existing copy counts — a re-upload never adds another.
+  const lk=v=>String(v||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+  const possible=all.filter(o=>(sameObserver(o.observer,name)||sameObserver(o.scheduled_observer,name))
+    &&[scheduleDate(o),o.date,o.completed_date].filter(Boolean).includes(day)
+    &&lk(o.program)===lk(program)&&lk(o.classroom)===lk(classroom));
+  const existing=possible.length?possible[0]:null;
   if(existing){const prev=JSON.stringify(existing);existing.scheduled_date=scheduled||existing.scheduled_date||day;if(completed)existing.completed_date=completed;if(!existing.classTool)existing.classTool=(c[4]||'').trim();if(!existing.linkb5)existing.linkb5=linkb5;JSON.stringify(existing)===prev?unchanged++:updated++;continue;}
   all.push({id:uid(),observer:name,type:obsType,date:day,scheduled_date:day,completed_date:completed||'',week:getWeekLabel(day),program,classroom,classTool:(c[4]||'').trim(),linkb5,inv_created:'',inv_submitted:'',inv_reconciled:'',inv_status:'none',revenue:0,notes:(c[15]||'').trim()});added++;
  }
@@ -2698,14 +2764,14 @@ renderScheduleOverview=function(){
  document.getElementById('pageContent').innerHTML=`<div style="display:flex;justify-content:space-between;gap:9px;flex-wrap:wrap;align-items:center;margin-bottom:15px"><div><h2 style="font-size:19px">Weekly observation schedule</h2><p style="color:#64748b;font-size:12px;margin-top:5px">Weekly CSV = expected assignments only. Submitted CSV = move matching observations to Submitted. Processing and Completed dates are entered manually.</p></div><button class="btn btn-primary" onclick="document.getElementById('csvImportFile').click()">⬆ Upload weekly schedule</button></div><div class="sec" style="overflow-x:auto"><table><thead><tr><th>Week</th><th>Scheduled total</th><th>Observers</th><th>Scheduled stage</th><th>Submitted</th><th>Processing</th><th>Completed</th><th></th></tr></thead><tbody>${lines||'<tr><td colspan="8" style="padding:20px;text-align:center">Upload the first weekly schedule to begin.</td></tr>'}</tbody></table></div>`;
 };
 renderScheduleWeek=function(weekStart){
- const rows=getSeason().filter(o=>getWeekStart(scheduleDate(o))===weekStart).sort((a,b)=>(a.observer||'').localeCompare(b.observer||'')||scheduleDate(a).localeCompare(scheduleDate(b)));
+ const rows=getSeason().filter(o=>getWeekStart(scheduleDate(o))===weekStart).sort((a,b)=>observerSort(a,b)||scheduleDate(a).localeCompare(scheduleDate(b)));
  const c=fourStageStats(rows);const groups={};rows.forEach(o=>(groups[o.observer||'Unassigned']??=[]).push(o));
- const blocks=Object.entries(groups).sort((a,b)=>a[0].localeCompare(b[0])).map(([observer,list])=>`<div class="sec"><div class="sec-hdr"><h3>👤 ${safeText(observer)} · ${list.length} classroom${list.length===1?'':'s'}</h3></div>${workflowTable(list)}</div>`).join('');
+ const blocks=Object.entries(groups).sort((a,b)=>observerSort({observer:a[0]},{observer:b[0]})).map(([observer,list])=>`<div class="sec"><div class="sec-hdr"><h3>👤 ${safeText(observer)} · ${list.length} classroom${list.length===1?'':'s'}</h3></div>${workflowTable(list)}</div>`).join('');
  document.getElementById('pageContent').innerHTML=`<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><div><a href="#" onclick="event.preventDefault();nav('schedule')">← All weeks</a><h2 style="font-size:18px;margin-top:8px">Week of ${safeText(getWeekLabel(weekStart))}</h2><p style="font-size:12px;color:#64748b">Observer assignments and classroom status, with bulk date updates.</p></div><button class="btn" onclick="document.getElementById('csvSubmittedContractorFile').click()">⬆ Submitted CSV</button></div><div class="mgrid" style="margin-top:12px">${Object.entries(c).map(([key,n])=>`<div class="mc"><div class="lbl">${key}</div><div class="val">${n}</div></div>`).join('')}</div>${bulkControls()}${blocks||'<div class="sec" style="padding:22px">No scheduled observations for this week.</div>'}`;
  attachFlowEdits();
 };
 renderWorkflow=function(){
- const all=[...getSeason()].sort((a,b)=>scheduleDate(b).localeCompare(scheduleDate(a)));
+ const all=[...getSeason()].sort((a,b)=>observerSort(a,b)||scheduleDate(a).localeCompare(scheduleDate(b)));
  const filter=window._fourStageFilter||'all';const rows=filter==='all'?all:all.filter(o=>fourStage(o)===filter);
  const c=fourStageStats(all);
  document.getElementById('pageContent').innerHTML=`<h2 style="font-size:19px">Observation workflow</h2><p style="font-size:12px;color:#64748b;margin:7px 0 15px">Scheduled CSV → Submitted CSV → Processing (manual date) → Completed (manual date). Select multiple classrooms to apply the same date.</p><div class="mgrid">${Object.entries(c).map(([k,v])=>`<div class="mc"><div class="lbl">${k}</div><div class="val">${v}</div></div>`).join('')}</div><div class="filter-bar"><label style="margin:0">Stage<select id="fourStageFilter" style="margin-top:4px">${['all','scheduled','submitted','processing','completed'].map(k=>`<option value="${k}" ${k===filter?'selected':''}>${k[0].toUpperCase()+k.slice(1)}</option>`).join('')}</select></label><button class="btn" onclick="nav('schedule')">Weekly schedule</button></div>${bulkControls()}${workflowTable(rows)}`;
@@ -2749,7 +2815,7 @@ processSubmittedCSV=function(lines,defaultType){
  const hdr=head>=0?parseCSVLine(lines[head]).map(x=>x.toLowerCase().trim()):[];
  const pos=(re,fallback)=>{const i=hdr.findIndex(h=>re.test(h));return i<0?fallback:i;};
  const idx={name:pos(/observer/,0),scheduled:pos(/scheduled/,1),program:pos(/facility|program|site/,2),room:pos(/classroom(?!.*linkb5)/,3),link:pos(/linkb5/,5),completed:pos(/observation completed|completed/,6)};
- const items=reviewItems(),all=getSeason();let matched=0,already=0,reviewed=0,invalid=0;
+ const items=reviewItems(),all=getSeason();let matched=0,already=0,reviewed=0,invalid=0,previouslyReviewed=0,queuedAlready=0;const reviewed0=reviewedSet();
  const before=JSON.parse(JSON.stringify(all));
  for(const line of lines.slice(head+1)){
   const cells=parseCSVLine(line);if(cells.length<3)continue;
@@ -2760,45 +2826,48 @@ processSubmittedCSV=function(lines,defaultType){
   let same=all.filter(o=>sameObserver(o.observer,row.observer)&&matchRecordFields(o,row));
   // LinkB5 fallback is permitted only for the same observer and a unique candidate.
   if(!same.length&&row.link)same=all.filter(o=>o.type===row.type&&sameObserver(o.observer,row.observer)&&o.linkb5===row.link&&safeKey(o.program)===safeKey(row.program)&&(!row.scheduled||scheduleDate(o)===row.scheduled));
+  if(!same.length)same=looseExactMatches(all,row);
   if(same.length===1){if(markImportedSubmitted(same[0],row)){matched++;logChange('Submitted CSV match',{observationId:same[0].id,observer:row.observer,program:row.program,classroom:row.classroom});}else already++;continue;}
+  if(reviewed0.has(rowFingerprint(row))){previouslyReviewed++;continue;}
   const otherNames=all.filter(o=>matchRecordFields(o,row)&&!sameObserver(o.observer,row.observer));
   const reason=same.length>1?'Multiple observations match the same observer and classroom':otherNames.length?'Observer name conflict':'No uniquely matching scheduled observation';
   const candidateIds=(same.length>1?same:otherNames).map(o=>o.id);
   // Retain a stable review queue, prevent duplicating unresolved import exceptions.
   const existing=items.find(x=>safeKey(x.row.observer)===safeKey(row.observer)&&x.row.scheduled===row.scheduled&&safeKey(x.row.program)===safeKey(row.program)&&safeKey(x.row.classroom)===safeKey(row.classroom)&&x.row.type===row.type);
-  if(!existing)items.push({id:uid(),row,reason,candidateIds,createdAt:new Date().toISOString()});
-  reviewed++;
+  if(!existing){items.push({id:uid(),row,reason,candidateIds,createdAt:new Date().toISOString()});reviewed++;}else queuedAlready++;
  }
  uploadReviewQueue[currentSeason]=items;persistReview();
  if(matched){lsSet('fot2_data',data);undoStack.push({type:'import',season:currentSeason,snapshot:before,label:'Submitted CSV upload'});}
  buildSidebar();nav('review');
- alert(`Submitted CSV review complete.\n\n${matched} matched and marked Submitted\n${already} already Submitted or later\n${reviewed} flagged for review\n${invalid} invalid dates\n\nDifferent observers in the same classroom are never merged automatically.`);
+ alert(`Submitted CSV review complete.\n\n${matched} matched and marked Submitted\n${already} already Submitted or later\n${reviewed} new rows flagged for review\n${queuedAlready} already waiting in Upload Review\n${previouslyReviewed} already reviewed earlier (skipped/merged/added) — ignored\n${invalid} invalid dates\n\nNo observations are ever added automatically from this file, so re-uploading it won't create duplicates.`);
 };
 function reviewResolve(id,action){
  const arr=reviewItems(),item=arr.find(x=>x.id===id);if(!item)return;
  const row=item.row,selected=document.getElementById('review-select-'+id)?.value||'';
  if(action==='skip'){
   if(!confirm('Skip this submitted CSV row? The scheduled observations will remain unchanged.'))return;
-  uploadReviewQueue[currentSeason]=arr.filter(x=>x.id!==id);persistReview();logChange('Skipped import exception',{row});renderUploadReview();return;
+  rememberReviewed(row,'skip');uploadReviewQueue[currentSeason]=arr.filter(x=>x.id!==id);persistReview();logChange('Skipped import exception',{row});buildSidebar();renderUploadReview();return;
  }
  if(action==='merge'){
   const record=getSeason().find(o=>o.id===selected);
-  if(!record||!item.candidateIds.includes(record.id)){alert('Select an existing scheduled observation from the list.');return;}
+  if(!record||!(item.candidateIds.includes(record.id)||nearMatches(row).some(m=>m.o.id===record.id))){alert('Select an existing scheduled observation from the list.');return;}
   if(['processing','completed'].includes(fourStage(record))){alert('Cannot merge into a Processing or Completed record. Review it manually.');return;}
   const choice=document.getElementById('review-name-'+id)?.value||'existing';
   const former=record.observer;
   const finalName=choice==='submitted'?row.observer:former;
   if(!confirm(`MERGE submitted row for "${row.observer}" into the existing observation assigned to "${former}"?\n\nProgram: ${row.program}\nClassroom: ${row.classroom}\nDate: ${row.scheduled||row.completed}\n\nObserver name kept: ${finalName}\n\nThe existing record and its history will be preserved. This decision will be logged.`))return;
-  if(choice==='submitted')record.observer=row.observer;
+  if(choice==='submitted'){if(!record.scheduled_observer)record.scheduled_observer=record.observer;record.observer=row.observer;}
   const changed=markImportedSubmitted(record,row);
   if(!changed&&fourStage(record)!=='submitted'){alert('The selected record could not be updated.');return;}
   lsSet('fot2_data',data);logChange('Manually merged submitted CSV row',{existingId:record.id,previousObserver:former,submittedObserver:row.observer,keptObserver:record.observer,row});
  }else if(action==='separate'){
   if(!confirm(`Keep a SEPARATE submitted observation for ${row.observer} in ${row.classroom}?\n\nThis creates one additional record. Confirm it represents a different observation, not a duplicate.`))return;
   const day=row.scheduled||row.completed;
+  if(looseExactMatches(getSeason(),row).length&&!confirm('A record with this observer, date, site and classroom already exists. Add another copy anyway?'))return;
   const rec={id:uid(),observer:row.observer,type:row.type,date:day,scheduled_date:day,completed_date:row.completed||'',week:getWeekLabel(day),program:row.program,classroom:row.classroom,linkb5:row.link||'',classTool:'',inv_created:'',inv_submitted:new Date().toISOString().slice(0,10),inv_reconciled:'',inv_status:'submitted',revenue:0,notes:'Added after reviewed submitted-CSV name conflict'};
   getSeason().push(rec);lsSet('fot2_data',data);logChange('Kept import as separate observation',{newId:rec.id,row});
  }else return;
+ rememberReviewed(row,action);
  uploadReviewQueue[currentSeason]=arr.filter(x=>x.id!==id);persistReview();buildSidebar();renderUploadReview();showToast('Review decision saved.');
 }
 function renderUploadReview(){
@@ -2807,6 +2876,108 @@ function renderUploadReview(){
  const r=x.row,candidates=x.candidateIds.map(id=>all.find(o=>o.id===id)).filter(Boolean);
  return `<div class="sec" style="padding:14px"><div style="font-weight:700;color:#9a3412">⚠ ${safeText(x.reason)}</div><div style="font-size:12px;margin:8px 0"><strong>Uploaded:</strong> ${safeText(r.observer)} · ${safeText(r.program)} · ${safeText(r.classroom)} · ${fmtDate(r.scheduled||r.completed)} · ${safeText(r.type)}</div><div style="font-size:12px;margin-bottom:9px"><strong>Existing scheduled observer(s):</strong> ${candidates.length?candidates.map(o=>safeText(o.observer)+' ('+fmtDate(scheduleDate(o))+')').join('; '):'No match found'}</div><div style="display:flex;flex-wrap:wrap;align-items:end;gap:8px"><label style="margin:0">Merge into existing record<select id="review-select-${x.id}" style="min-width:210px" ${candidates.length?'':'disabled'}>${candidates.map(o=>`<option value="${safeText(o.id)}">${safeText(o.observer)} — ${safeText(o.classroom)} — ${fmtDate(scheduleDate(o))}</option>`).join('')}</select></label><label style="margin:0">After merge, keep observer name<select id="review-name-${x.id}"><option value="existing">Existing scheduled name</option><option value="submitted">Name from submitted CSV</option></select></label><button class="btn btn-primary" onclick="reviewResolve('${x.id}','merge')" ${candidates.length?'':'disabled'}>Merge into existing</button><button class="btn" onclick="reviewResolve('${x.id}','separate')">Keep separate</button><button class="btn" onclick="reviewResolve('${x.id}','skip')">Skip row</button></div></div>`}).join(''):'<div class="sec" style="padding:25px;text-align:center;color:#64748b">No unresolved upload exceptions.</div>'}`;
 }
+// ── Review helpers: loose matching, near matches, re-check, bulk actions ──
+function looseKey(v){return String(v||'').toLowerCase().replace(/[^a-z0-9]/g,'');}
+const reviewedStorageKey='ff_review_resolved_v1';
+function rowFingerprint(row){return [row.type,normName(row.observer),row.scheduled||row.completed||'',looseKey(row.program),looseKey(row.classroom)].join('|');}
+function reviewedSet(){const all=lsGet(reviewedStorageKey)||{};return new Set(all[currentSeason]||[]);}
+function rememberReviewed(row,decision){
+  const all=lsGet(reviewedStorageKey)||{};const list=all[currentSeason]||[];const fp=rowFingerprint(row);
+  if(!list.includes(fp))list.push(fp);all[currentSeason]=list;lsSet(reviewedStorageKey,all);
+}
+function looseSame(a,b){const x=looseKey(a),y=looseKey(b);return !!x&&!!y&&(x===y||x.includes(y)||y.includes(x));}
+function rowDay(row){return row.scheduled||row.completed||'';}
+function dayGap(a,b){if(!a||!b)return 999;return Math.round(Math.abs(new Date(a+'T12:00:00')-new Date(b+'T12:00:00'))/86400000);}
+function recordDays(o){return [scheduleDate(o),o.completed_date,o.date].filter(Boolean);}
+// Same observer, type and date; program/classroom equal once punctuation, spacing and underscores are ignored.
+function looseExactMatches(all,row){
+  return all.filter(o=>o.type===row.type&&sameObserver(o.observer,row.observer)&&recordDays(o).some(d=>d===row.scheduled||d===row.completed)
+    &&looseKey(o.program)===looseKey(row.program)&&looseKey(o.classroom)===looseKey(row.classroom));
+}
+// Suggestions for a reviewer to pick from (never applied automatically).
+function nearMatches(row){
+  const day=rowDay(row);
+  return getSeason().map(o=>{
+    const gap=Math.min(...recordDays(o).map(d=>dayGap(d,day)),999);
+    const obs=sameObserver(o.observer,row.observer)||looseKey(o.observer)===looseKey(row.observer);
+    const prog=looseSame(o.program,row.program),room=looseSame(o.classroom,row.classroom);
+    let why=[];
+    if(obs&&prog&&room&&gap<=21)why.push(gap?`same observer & classroom, ${gap} day${gap===1?'':'s'} apart`:'same observer & classroom, spelling differs');
+    else if(prog&&room&&gap<=3)why.push(obs?'same classroom':'same classroom, different observer');
+    else if(obs&&prog&&gap<=7)why.push(`same observer & site, different classroom${gap?`, ${gap}d apart`:''}`);
+    if(!why.length)return null;
+    const score=(obs?4:0)+(prog?3:0)+(room?3:0)-Math.min(gap,21)/7;
+    return {o,why:why[0],score,gap};
+  }).filter(Boolean).sort((a,b)=>b.score-a.score).slice(0,6);
+}
+function reviewDetail(o){return `${safeText(o.observer)} — ${safeText(o.program)} — ${safeText(o.classroom)} — ${fmtDate(scheduleDate(o))} (${safeText(o.type)}, ${fourStage(o)})`;}
+function recheckReview(){
+  const arr=reviewItems(),all=getSeason();if(!arr.length){showToast('Nothing to re-check.');return;}
+  const before=JSON.parse(JSON.stringify(all));let fixed=0,already=0;const keep=[];
+  arr.forEach(item=>{
+    const row=item.row;
+    let m=all.filter(o=>sameObserver(o.observer,row.observer)&&matchRecordFields(o,row));
+    if(!m.length)m=looseExactMatches(all,row);
+    if(m.length===1){
+      if(markImportedSubmitted(m[0],row)){fixed++;logChange('Re-check matched submitted CSV row',{observationId:m[0].id,row});}
+      else{already++;logChange('Re-check: matching record already Submitted or later',{observationId:m[0].id,row});}
+      return;
+    }
+    const other=all.filter(o=>matchRecordFields(o,row)&&!sameObserver(o.observer,row.observer));
+    if(other.length){item.reason='Observer name conflict';item.candidateIds=other.map(o=>o.id);}
+    keep.push(item);
+  });
+  uploadReviewQueue[currentSeason]=keep;persistReview();
+  if(fixed){lsSet('fot2_data',data);undoStack.push({type:'import',season:currentSeason,snapshot:before,label:'Re-check review queue'});}
+  buildSidebar();renderUploadReview();
+  alert(`Re-check complete.\n\n${fixed} now matched and marked Submitted\n${already} matched a record that was already Submitted or later (removed from the queue)\n${keep.length} still need review`);
+}
+function reviewSelectAll(on){document.querySelectorAll('.review-pick').forEach(c=>c.checked=on);}
+function reviewBulk(action){
+  const ids=[...document.querySelectorAll('.review-pick:checked')].map(c=>c.value);
+  if(!ids.length){alert('Tick the rows first.');return;}
+  const arr=reviewItems(),picked=arr.filter(x=>ids.includes(x.id));
+  if(action==='separate'){
+    if(!confirm(`Add ${picked.length} row(s) as NEW Submitted observations?\n\nUse this only for observations that were never on a weekly schedule. Check that none of them is already in the tracker under a different spelling.`))return;
+    const today=new Date().toISOString().slice(0,10);
+    picked.forEach(x=>{const r=x.row,day=rowDay(r);
+      const rec={id:uid(),observer:r.observer,type:r.type,date:day,scheduled_date:day,completed_date:r.completed||'',week:getWeekLabel(day),program:r.program,classroom:r.classroom,linkb5:r.link||'',classTool:'',inv_created:'',inv_submitted:today,inv_reconciled:'',inv_status:'submitted',revenue:0,notes:'Added from Upload Review (not on weekly schedule)'};
+      getSeason().push(rec);rememberReviewed(r,'separate');logChange('Added unscheduled submitted observation',{newId:rec.id,row:r});});
+    lsSet('fot2_data',data);
+  }else if(action==='skip'){
+    if(!confirm(`Skip ${picked.length} row(s)? Nothing in the tracker changes.`))return;
+    picked.forEach(x=>{logChange('Skipped import exception',{row:x.row});rememberReviewed(x.row,'skip');});
+  }else return;
+  uploadReviewQueue[currentSeason]=arr.filter(x=>!ids.includes(x.id));persistReview();buildSidebar();renderUploadReview();
+  showToast(`${picked.length} row(s) ${action==='skip'?'skipped':'added as new Submitted observations'}.`);
+}
+renderUploadReview=function(){
+  const items=reviewItems(),all=getSeason();
+  const noMatch=items.filter(x=>/no uniquely/i.test(x.reason)).length,conflicts=items.filter(x=>/name conflict/i.test(x.reason)).length;
+  const cards=items.map(x=>{
+    const r=x.row,exact=x.candidateIds.map(id=>all.find(o=>o.id===id)).filter(Boolean);
+    const near=nearMatches(r).filter(m=>!exact.some(e=>e.id===m.o.id));
+    const options=[...exact.map(o=>({o,why:'same classroom & date'})),...near];
+    const eligible=m=>!['submitted','processing','completed'].includes(fourStage(m.o));
+    const firstOk=options.find(eligible);
+    const opts=options.map(m=>`<option value="${safeText(m.o.id)}" ${eligible(m)?'':'disabled'} ${m===firstOk?'selected':''}>${eligible(m)?'':'(already '+fourStage(m.o)+') '}${safeText(m.o.observer)} — ${safeText(m.o.classroom)} — ${fmtDate(scheduleDate(m.o))} · ${safeText(m.why)}</option>`).join('');
+    const hint=options.length
+      ?`<strong>Possible matches:</strong><ul style="margin:4px 0 0 18px">${options.map(m=>`<li>${reviewDetail(m.o)} <span style="color:#64748b">· ${safeText(m.why)}</span></li>`).join('')}</ul>`
+      :`<strong>Possible matches:</strong> none. Nothing for ${safeText(r.observer)} at this site or classroom within 3 weeks. Most likely this week's schedule wasn't uploaded, or the observation was never scheduled.`;
+    const dup=options.some(m=>['submitted','processing','completed'].includes(fourStage(m.o))&&sameObserver(m.o.observer,r.observer)&&m.gap===0);
+    return `<div class="sec" style="padding:14px"><div style="display:flex;gap:10px;align-items:flex-start"><input type="checkbox" class="review-pick edit-only" value="${safeText(x.id)}" aria-label="Select row for ${safeText(r.observer)}" style="margin-top:3px;width:16px;height:16px"><div style="flex:1;min-width:0">
+      <div style="font-weight:700;color:#9a3412">⚠ ${safeText(x.reason)}</div>
+      <div style="font-size:12px;margin:8px 0"><strong>Uploaded:</strong> ${safeText(r.observer)} · ${safeText(r.program)} · ${safeText(r.classroom)} · ${fmtDate(rowDay(r))} · ${safeText(r.type)}</div>
+      ${dup?'<div style="font-size:12px;margin-bottom:6px;color:#b91c1c"><strong>Likely duplicate:</strong> this observer already has a Submitted or later record for this classroom and date — Skip is probably right.</div>':''}
+      <div style="font-size:12px;margin-bottom:9px">${hint}</div>
+      <div style="display:flex;flex-wrap:wrap;align-items:end;gap:8px"><label style="margin:0">Merge into existing record<select id="review-select-${x.id}" style="min-width:260px;max-width:100%" ${firstOk?'':'disabled'}>${opts||'<option>No candidates</option>'}</select></label><label style="margin:0">After merge, keep observer name<select id="review-name-${x.id}"><option value="existing">Existing scheduled name</option><option value="submitted">Name from submitted CSV</option></select></label><button class="btn btn-primary" onclick="reviewResolve('${x.id}','merge')" ${firstOk?'':'disabled'}>Merge into existing</button><button class="btn" onclick="reviewResolve('${x.id}','separate')">Keep separate (add new)</button><button class="btn" onclick="reviewResolve('${x.id}','skip')">Skip row</button></div>
+    </div></div></div>`;}).join('');
+  document.getElementById('pageContent').innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:14px"><div><h2 style="font-size:19px">Upload Review Center</h2><p style="color:#64748b;font-size:12px;margin-top:5px">No names are merged and no payment statuses are changed for unmatched rows until you make a choice.</p></div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-primary" onclick="recheckReview()">🔄 Re-check against schedule</button><button class="btn" onclick="document.getElementById('csvSubmittedContractorFile').click()">⬆ Upload submitted CSV</button></div></div>
+  <div class="mgrid"><div class="mc"><div class="lbl">Needs review</div><div class="val amber">${items.length}</div></div><div class="mc"><div class="lbl">No schedule match</div><div class="val">${noMatch}</div></div><div class="mc"><div class="lbl">Name conflicts</div><div class="val">${conflicts}</div></div></div>
+  ${items.length?`<div class="sec edit-only" style="padding:12px 14px;font-size:12px;line-height:1.55;background:#f8fafc"><strong>Why rows land here:</strong> a submitted row only matches automatically when the observer, type, date, site and classroom all match a scheduled observation. <strong>"No uniquely matching"</strong> usually means that week's schedule CSV hasn't been uploaded yet, the visit happened on a different day than scheduled, or the site/classroom is spelled differently. Upload the missing schedule, then click <strong>Re-check against schedule</strong>. For rows that were truly never scheduled, tick them and use <strong>Add selected as new</strong>.
+   <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><button class="btn btn-sm" onclick="reviewSelectAll(true)">Select all</button><button class="btn btn-sm" onclick="reviewSelectAll(false)">Clear</button><button class="btn btn-sm" onclick="reviewBulk('separate')">Add selected as new Submitted</button><button class="btn btn-sm" onclick="reviewBulk('skip')">Skip selected</button></div></div>`:''}
+  ${cards||'<div class="sec" style="padding:25px;text-align:center;color:#64748b">No unresolved upload exceptions.</div>'}`;
+};
 function renderChangeHistory(){
  const entries=auditEvents.filter(e=>e.season===currentSeason);
  document.getElementById('pageContent').innerHTML=`<h2 style="font-size:19px;margin-bottom:7px">Change History</h2><p style="font-size:12px;color:#64748b;margin-bottom:15px">Local record of major import, merge, batch and workflow actions for this browser. For a cross-device audit log, a dedicated server-side audit table will be required.</p><div class="sec" style="overflow:auto"><table><thead><tr><th>When</th><th>Action</th><th>Details</th></tr></thead><tbody>${entries.map(e=>`<tr><td style="white-space:nowrap">${safeText(new Date(e.at).toLocaleString())}</td><td>${safeText(e.action)}</td><td>${safeText(JSON.stringify(e.details)).slice(0,260)}</td></tr>`).join('')||'<tr><td colspan="3">No logged changes yet.</td></tr>'}</tbody></table></div>`;
@@ -2954,8 +3125,120 @@ function updateLocalBar(){
   dot.className='cloud-dot '+(days>=7?'warn':'ok');
   note.textContent='· Last backup: '+new Date(last).toLocaleDateString()+(days>=7?' ('+days+' days ago — download a fresh backup)':'');
 }
-init();
-updateLocalBar();
+
+// ── PASSCODE-LOCKED SNAPSHOTS ──
+// AES-GCM 256 with a PBKDF2-SHA256 key derived from the passcode. Only data.enc goes on GitHub.
+const SNAP_ITER=310000;
+const b64=u8=>{let s='';u8.forEach(c=>s+=String.fromCharCode(c));return btoa(s);};
+const unb64=t=>Uint8Array.from(atob(t),c=>c.charCodeAt(0));
+async function snapKey(pass,salt,iter){
+  const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(pass),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:iter,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+async function encryptSnapshot(obj,pass){
+  const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));
+  const key=await snapKey(pass,salt,SNAP_ITER);
+  const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},key,new TextEncoder().encode(JSON.stringify(obj))));
+  return {format:'ff-observation-snapshot',v:1,kdf:'PBKDF2-SHA256',iter:SNAP_ITER,salt:b64(salt),iv:b64(iv),ct:b64(ct)};
+}
+async function decryptSnapshot(file,pass){
+  if(!file||file.format!=='ff-observation-snapshot')throw new Error('FORMAT');
+  const key=await snapKey(pass,unb64(file.salt),file.iter||SNAP_ITER);
+  let plain;
+  try{plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(file.iv)},key,unb64(file.ct));}
+  catch(e){throw new Error('PASSCODE');}
+  return JSON.parse(new TextDecoder().decode(plain));
+}
+function snapOverlay(html,cls=''){
+  const o=document.createElement('div');o.className='snap-overlay '+cls;o.setAttribute('role','dialog');o.setAttribute('aria-modal','true');
+  o.innerHTML='<div class="snap-card">'+html+'</div>';document.body.appendChild(o);
+  const first=o.querySelector('input');if(first)setTimeout(()=>first.focus(),30);
+  return o;
+}
+
+// Editor: publish
+function openPublishSnapshot(){
+  if(FF_VIEW_ONLY)return;
+  if(!window.crypto||!crypto.subtle){alert('Publishing needs the tracker to be opened from its https:// web address (or a modern browser).');return;}
+  const obsCount=Object.values(data).reduce((s,a)=>s+(Array.isArray(a)?a.length:0),0);
+  const subCount=Object.values(submissions).reduce((s,a)=>s+(Array.isArray(a)?a.length:0),0);
+  const o=snapOverlay(`<h2>Publish view-only snapshot</h2>
+   <p>Creates <strong>data.enc</strong> with ${obsCount} observations and ${subCount} submission entries, locked with a passcode. Upload it to your GitHub repo; reviewers open the site and enter the passcode to view.</p>
+   <label for="snapP1">Passcode (at least 10 characters)</label><input type="password" id="snapP1" autocomplete="new-password">
+   <label for="snapP2">Type it again</label><input type="password" id="snapP2" autocomplete="new-password">
+   <div class="snap-err" id="snapErr" aria-live="polite"></div>
+   <p style="font-size:12px;margin:4px 0 0">Share the passcode separately from the link (for example, in Teams, not in the same email). There is no way to recover it — if it's lost, publish again with a new one.</p>
+   <div class="snap-actions"><button class="ghost" id="snapCancel">Cancel</button><button id="snapGo">Create data.enc</button></div>`);
+  o.querySelector('#snapCancel').onclick=()=>o.remove();
+  o.querySelector('#snapGo').onclick=async()=>{
+    const p1=o.querySelector('#snapP1').value,p2=o.querySelector('#snapP2').value,err=o.querySelector('#snapErr');
+    if(p1.length<10){err.textContent='Use at least 10 characters (a short phrase works well).';return;}
+    if(p1!==p2){err.textContent='The two passcodes don\'t match.';return;}
+    err.textContent='Locking…';
+    const payload={app:'foundation-first-observation-tracker',publishedAt:new Date().toISOString(),currentSeason,data,submissions,
+      uploadReview:(typeof uploadReviewQueue!=='undefined')?uploadReviewQueue:{},changeHistory:(typeof auditEvents!=='undefined')?auditEvents:[]};
+    try{
+      const file=await encryptSnapshot(payload,p1);
+      const check=await decryptSnapshot(file,p1); // confirm it opens before handing it over
+      if(!check||!check.data)throw new Error('verify');
+      dl(JSON.stringify(file),'data.enc','application/octet-stream');
+      lsSet('fot2_last_publish',payload.publishedAt);
+      o.remove();showToast('data.enc downloaded — upload it to GitHub, replacing the old one.');
+    }catch(e){err.textContent='Could not create the snapshot: '+e.message;}
+  };
+}
+
+// Viewer: unlock
+function lockedNoop(){showToast('View-only — changes can\'t be made here.');}
+function disableEditing(){
+  ['addSelectedToSubmissionReport','applyBulkWorkflow','applyObserverMerge','autoFillReconciledRevenue','backupData','bulkUnmarkPaid','clearWindow',
+   'confirmTypeAndImport','deleteObs','deleteSubmission','doUndo','importCSV','importSubmittedCSV','keepThisDeleteRest','leaveOffOlderSubmitted',
+   'manualSave','markImportedSubmitted','markScheduledInvoiceCreated','markSelectedPaid','markSubmissionReconciled','openAddModal',
+   'openAddSubmissionModal','openEditModal','openEditSubmissionModal','openMergeAccountsModal','openRenameObserverModal','processRawWeeklyCSV',
+   'processSubmittedCSV','processTrackerCSV','repairInvoiceDates','restoreData','reviewResolve','saveEmailSummaryBatch','saveMergeAccounts',
+   'saveObservation','saveRenameObserver','saveSubmission','showClearConfirm','splitSubmissionByEmail','toggleInvDate','toggleProcessing',
+   'toggleVerified','unmarkPayoutPaidById','unmarkSubmissionReconciled','workflowSetStage','openPublishSnapshot','recheckReview','reviewBulk'
+  ].forEach(n=>{if(typeof window[n]==='function')window[n]=lockedNoop;});
+  document.querySelectorAll('#csvImportFile,#csvSubmittedContractorFile,#csvSubmittedInternalFile,#restoreFile').forEach(i=>i.disabled=true);
+}
+function showViewBanner(){
+  const when=viewSnapshot.publishedAt?new Date(viewSnapshot.publishedAt).toLocaleString([], {dateStyle:'medium',timeStyle:'short'}):'unknown date';
+  document.getElementById('cloudDot').className='cloud-dot warn';
+  document.getElementById('cloudStatus').textContent='View-only';
+  document.getElementById('backupNote').textContent='· Snapshot published '+when+' · Nothing you click here changes the tracker';
+  document.getElementById('localBarBtns').innerHTML='<button onclick="location.reload()">🔒 Lock</button>';
+  document.title='Foundation First Observation Tracker (view-only)';
+}
+async function startViewer(){
+  disableEditing();
+  let file=null,loadErr='';
+  try{const r=await fetch('data.enc?t='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error(r.status);file=await r.json();}
+  catch(e){loadErr=location.protocol==='file:'?'Opened from a file — choose data.enc below.':'No published snapshot was found on the site yet.';}
+  const o=snapOverlay(`<h2>Foundation First Observation Tracker</h2>
+    <p>View-only. Enter the passcode you were given to see the latest published snapshot.</p>
+    <label for="viewPass">Passcode</label><input type="password" id="viewPass" autocomplete="current-password">
+    <div class="snap-err" id="viewErr" aria-live="polite">${loadErr}</div>
+    <div class="snap-actions"><button id="viewGo">Unlock</button></div>
+    <div class="snap-file">Were you sent the file instead? <button type="button" id="viewFileBtn" style="background:none;border:0;color:#2E4DA3;text-decoration:underline;cursor:pointer;font-size:12px;padding:0">Open data.enc</button><input type="file" id="viewFile" accept=".enc,.json" style="display:none"></div>`,'lock');
+  const err=o.querySelector('#viewErr');
+  o.querySelector('#viewFileBtn').onclick=()=>o.querySelector('#viewFile').click();
+  o.querySelector('#viewFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();
+    rd.onload=()=>{try{file=JSON.parse(rd.result);err.textContent='File loaded — enter the passcode.';}catch(_){err.textContent='That isn\'t a snapshot file.';}};rd.readAsText(f);};
+  const go=async()=>{
+    if(!file){err.textContent=loadErr||'No snapshot loaded.';return;}
+    err.textContent='Unlocking…';
+    try{
+      viewSnapshot=await decryptSnapshot(file,o.querySelector('#viewPass').value);
+      if(!viewSnapshot||viewSnapshot.app!=='foundation-first-observation-tracker')throw new Error('FORMAT');
+      loadReview();init();showViewBanner();o.remove();
+    }catch(e){err.textContent=e.message==='PASSCODE'?'That passcode didn\'t work. Check it and try again.':'This snapshot file couldn\'t be read.';}
+  };
+  o.querySelector('#viewGo').onclick=go;
+  o.querySelector('#viewPass').onkeydown=e=>{if(e.key==='Enter')go();};
+}
+
+if(FF_VIEW_ONLY){startViewer();}
+else{init();updateLocalBar();}
 </script>
 </body>
 </html>
